@@ -1,0 +1,96 @@
+.edit-page-alert{
+    border-radius: 0px!important;
+    margin-top: 0.2em!important;
+    padding: 15px!important;
+    background-color: #5195E0!important;
+}
+
+.edit-page-alert p{
+    margin-bottom: 0px!important;
+    text-align: center!important;
+   
+    color: white!important;
+}
+
+alert-dismissible .btn-close {
+    padding: 0.9rem 1rem!important;
+}
+
+.dropdown-container {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+
+.dropdown-container .btn {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.dropdown-container .card {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-color: rgb(152, 152, 152);
+}
+
+.cce_btn{
+    text-align: start;
+    border: 1px solid black!important;
+    width: auto;
+    font-size: 13px!important;
+    border-radius: 3px!important;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  .overflow-y-auto {
+    overflow-y: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: thin;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 3px;
+  }
+
+
+body {
+-ms-overflow-style: none;  /* IE and Edge */
+scrollbar-width: none;  /* Firefox */
+}
+
+body::-webkit-scrollbar {
+display: none;  /* Chrome, Safari and Opera */
+}
+
+
+
+
+.description-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.description-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.description-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.description-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
