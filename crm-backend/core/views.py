@@ -13,9 +13,8 @@ from django.db import transaction
 from .models import Customer, Lead, Profile, Order, Car
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count
-from django.db.models import Count, Q
 
-from core import models
+
 
 
 @api_view(['GET'])
@@ -32,59 +31,7 @@ def home_view(request):
     else:
         # If no leads exist, start with 1
         seq_num = 1
-
-    profiles = Profile.objects.annotate(
-        lead_count=Count('profile_leads')
-    ).order_by('lead_count')
     
-    print("\n--- All Profiles with Lead Counts ---")
-    for profile in profiles:
-        print(f"Profile: {profile.user.username}, Lead Count: {profile.lead_count}")
-    
-    # Get profile with least leads
-    least_busy_profile = profiles.first()
-    print("\n--- Profile with Least Leads ---")
-    print(f"Username: {least_busy_profile.user.username}")
-    print(f"Lead Count: {least_busy_profile.lead_count}")
-    # print(f"Status: {least_busy_profile.status}")
-
-    # Fetch the profile with the least number of leads
-    # profile = Profile.objects.annotate(num_leads=Count('leads')).order_by('num_leads').first()
-
-    # print('This is the profile', profile)
-
-    # # Query all profiles with their lead counts
-    # all_profiles = Profile.objects.annotate(num_leads=Count('leads')).order_by('num_leads')
-
-    # # Print all profiles with their lead counts
-    # for p in all_profiles:
-    #     print(f'Profile : {p.user.username}, Lead Count: {p.num_leads}')
-
-
-
-    # Basic query with lead count
-    # profiles_with_counts = Profile.objects.annotate(num_leads=Count('leads', distinct=True)).select_related('user').order_by('-num_leads')  # descending order, most leads first
-
-    # profiles_with_counts = Profile.objects.annotate(
-    # num_leads=Count('profile_leads', distinct=True)).select_related('user')
-
-    # # For more detailed analysis, you could do:
-    # profiles_with_detailed_counts = Profile.objects.annotate(
-    #     total_leads=Count('leads', distinct=True),
-    #     active_leads=Count('leads', 
-    #         filter=Q(leads__lead_status='Active'),
-    #         distinct=True
-    #     ),
-    #     new_leads=Count('leads', 
-    #         filter=Q(leads__lead_status='New'),
-    #         distinct=True
-    #     )
-    # )
-
-    # Print the results
-        # for profile in profiles_with_counts:
-        #     print(f'Profile: {profile.user.username}, Total Leads: {profile.num_leads}')
-        
     pagination_data = paginate_leads(recent_leads, page_number)
     users = User.objects.all().values('id', 'username')
     users_data = list(users)
@@ -380,7 +327,7 @@ def update_lead(request, id):
             lead.disposition = arrival_data.get('disposition', lead.disposition)
             lead.arrival_time = arrival_data.get('dateTime', lead.arrival_time)
             lead.workshop_details = workshop_data
-            lead.ca_name = workshop_data.get('ca', lead.ca_name)
+            lead.ca_name = basic_data.get('caName', lead.ca_name)
             lead.products = overview_data.get('tableData', lead.products)
             lead.estimated_price = basic_data.get('total', lead.estimated_price)
             lead.save()
@@ -507,3 +454,99 @@ def generate_custom_lead_id(customer_number):
     # Format lead ID
     lead_id = f"L-{customer_number}-{seq_num}"
     return lead_id
+
+
+@api_view(['POST'])
+def create_lead_from_wordpress(request):
+    try:
+        with transaction.atomic():
+            # Extract data from request
+            data = request.data
+            print('Received the 8888888888888888888888888888888888888 data:', data)
+            car_details = data.get('car_details', {})
+            user_number = data.get('user_number')
+            city = data.get('city')
+
+            # # Create or get customer
+            customer, created = Customer.objects.get_or_create(
+                mobile_number=user_number,
+                defaults={'customer_name': 'Customer'}
+            )
+
+            print('Customer - ', customer)
+
+            # Check if the car already exists for this customer
+            car = Car.objects.filter(
+                customer=customer,
+                brand=car_details.get('car_name', '').strip(),
+                model=car_details.get('car_model', '').strip()
+            ).first()
+
+
+
+            # Create car
+            if not car:
+                car = Car.objects.create(
+                    customer=customer,
+                    brand=car_details.get('car_name', '').strip(),
+                    model=car_details.get('car_model', '').strip(),
+                    year=car_details.get('car_year', ''),
+                    fuel=car_details.get('fuel_type', '')
+                )
+
+             # Generate custom lead ID
+            custom_lead_id = generate_custom_lead_id(customer.mobile_number)
+
+            dummy_table_data = [{"name": "Service Name", "type": "Service Type", "total": "0", "workdone": "wordone", "determined": False},]
+
+            
+            profiles = Profile.objects.annotate(lead_count=Count('profile_leads')).order_by('lead_count')
+    
+            print("\n--- All Profiles with Lead Counts ---")
+            for profile in profiles:
+                print(f"Profile: {profile.user.username}, Lead Count: {profile.lead_count}")
+    
+            # Get profile with least leads
+            least_busy_profile = profiles.first()
+            print("\n--- Profile with Least Leads ---")
+            print(f"Username: {least_busy_profile.user.username}")
+            print(f"Lead Count: {least_busy_profile.lead_count}")
+
+            try:
+                print('Creating lead')
+                # Create lead
+                lead = Lead.objects.create(
+                    lead_id=custom_lead_id,
+                    customer=customer,
+                    car=car,
+                    city=city,
+                    profile=least_busy_profile,
+                    source='Website',
+                    # source='Reference',
+                    products=dummy_table_data,
+                    estimated_price=0,
+                    service_type=data.get('service_type', ''),
+                    lead_status='Assigned',
+                    cce_name=least_busy_profile.user.username,
+                )
+            except Exception as e:
+                print('Error creating lead:', str(e))
+                return Response({
+                    'status': 'error',
+                    'message': 'Error creating lead'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            print(f'********** Lead - {lead} , Car - {car} **********, Customer - {customer}')
+
+            return Response({
+                'status': 'success',
+                'lead_id': lead.lead_id
+            }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    
