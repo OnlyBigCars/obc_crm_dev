@@ -110,4 +110,6 @@ class Lead(models.Model):
 
     def __str__(self):
         return f"Lead {self.lead_id}"
+    
+# updated some code here
 
